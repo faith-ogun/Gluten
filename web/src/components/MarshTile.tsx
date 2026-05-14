@@ -137,7 +137,7 @@ export function MarshTile() {
     <div className="rounded-lg border border-black/10 bg-white p-5">
       <div className="flex items-baseline justify-between">
         <h3 className="font-serif text-xl">Structural layer · Marsh classifier</h3>
-        <span className="text-xs text-black/50">Gemma 4 E4B merged · 70% / F1 0.84 (3b)</span>
+        <span className="text-xs text-black/50">Gemma 4 E4B merged · 70% train · 64% deploy · F1 0.83 (3b)</span>
       </div>
 
       <p className="mt-1 text-sm text-black/60">
