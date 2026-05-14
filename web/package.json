@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && npm run postbuild",
+    "postbuild": "mkdir -p .next/standalone/public && cp -R public/. .next/standalone/public/",
     "start": "next start"
   },
   "dependencies": {
