@@ -15,8 +15,8 @@
 A single web app with two entry points and one engine.
 
 - **Screen mode.** A GP enters non-specific symptoms (chronic anaemia, fatigue, IBS, early osteoporosis, family history). Gemma 4 E4B, on-device via Ollama, structures the dictation into a FHIR-compatible profile. The system returns a coeliac probability against published guideline criteria, plus a demographic-aware test advisory (e.g. tTG-IgA has higher false-negative rates in Black patients).
-- **Twin mode.** A GP enters confirmed CD data — serology, HLA, histology, demographics. Gemma 4 31B (256K context) cross-references the profile against six biological layers of the disease, retrieving cited PubMed evidence per layer. The output is a personalised trajectory projection alongside a per-layer confidence breakdown. For under-represented ancestries, four of six layers collapse to near-zero confidence by construction — the equity gap, made measurable inside the consultation.
-- **Contribute.** With patient consent, the clinician sends a de-identified structured profile to the global research pool. PHI is stripped server-side (ages → decades, tTG/IEL/GFD → clinical bins, free text dropped, allow-listed flags only). The HIPAA Safe Harbor scan runs as a defence-in-depth check before write.
+- **Twin mode.** A GP enters confirmed CD data: serology, HLA, histology, demographics. Gemma 4 31B (256K context) cross-references the profile against six biological layers of the disease, retrieving cited PubMed evidence per layer. The output is a personalised trajectory projection alongside a per-layer confidence breakdown. For under-represented ancestries, four of six layers collapse to near-zero confidence by construction. The equity gap, made measurable inside the consultation.
+- **Contribute.** With patient consent, the clinician sends a de-identified structured profile to the global research pool. PHI is stripped server-side (ages to decades, tTG/IEL/GFD to clinical bins, free text dropped, allow-listed flags only). The HIPAA Safe Harbor scan runs as a defence-in-depth check before write.
 
 ## The six layers
 
@@ -33,9 +33,9 @@ Per-layer confidence is computed deterministically from how well the patient's d
 
 ## How Gemma 4 is used
 
-1. **Gemma 4 E4B (local via Ollama)** — clinician voice/text → FHIR-compatible JSON. 140+ languages. Raw narrative never leaves the device.
-2. **Gemma 4 31B (Ollama Cloud)** — six-layer twin reasoning, grounded in retrieved PubMed abstracts, with PMIDs constrained to a closed vocabulary so fabricated citations cannot reach the user.
-3. **Gemma 4 E4B fine-tuned via Unsloth QLoRA** — Marsh-grade classification from HE-stained biopsy patches. 70% / Marsh-3b F1 0.84 on a 400-patch held-out test set (training eval); 64.5% / F1 0.83 on the merged-fp16 model that serves the live demo. Targets the Unsloth special-technology track. Deployed as a Modal-hosted FastAPI sidecar.
+1. **Gemma 4 E4B (local via Ollama).** Clinician voice/text to FHIR-compatible JSON. 140+ languages. Raw narrative never leaves the device.
+2. **Gemma 4 31B (Ollama Cloud).** Six-layer twin reasoning, grounded in retrieved PubMed abstracts, with PMIDs constrained to a closed vocabulary so fabricated citations cannot reach the user.
+3. **Gemma 4 E4B fine-tuned via Unsloth QLoRA.** Marsh-grade classification from HE-stained biopsy patches. 70% / Marsh-3b F1 0.84 on a 400-patch held-out test set (training eval); 64.5% / F1 0.83 on the merged-fp16 model that serves the live demo. Targets the Unsloth special-technology track. Deployed as a Modal-hosted FastAPI sidecar.
 
 ## Architecture
 
@@ -87,7 +87,7 @@ Per-layer confidence is computed deterministically from how well the patient's d
 
 Two terminals.
 
-**Terminal 1 — Ollama:**
+**Terminal 1 (Ollama):**
 ```bash
 # Install Ollama from https://ollama.com
 ollama pull gemma4:e4b
@@ -95,7 +95,7 @@ ollama pull nomic-embed-text
 # Ollama auto-starts as a menu-bar app on macOS.
 ```
 
-**Terminal 2 — the web app:**
+**Terminal 2 (the web app):**
 ```bash
 cd web
 npm install
@@ -133,18 +133,18 @@ npx tsx --test src/lib/deidentify.test.ts
 ## Strategic decisions
 
 - **Colon data, transferable to duodenum.** Chose IBDColEpi (CC0) over the Cambridge duodenal benchmark (NEJM AI 2025, access-restricted IRAS 162057). Pettersen et al. explicitly name coeliac as an applicable use case. A CD AI built on access-restricted data is one most of the world cannot validate.
-- **Weak-supervision proxy labels with pathologist-like errors.** IBDColEpi ships epithelium-segmentation masks, not Marsh grades. Pseudo-labels derived from epithelium-fraction quantile binning. Errors confine to adjacent grades, mirroring 73-80% inter-pathologist agreement. The pseudo-labelling methodology is open so the next group can retrain on pathologist-validated grades in 30 minutes.
+- **Weak-supervision proxy labels with pathologist-like errors.** IBDColEpi ships epithelium-segmentation masks, not Marsh grades. Pseudo-labels are derived from epithelium-fraction quantile binning. Errors confine to adjacent grades, mirroring 73-80% inter-pathologist agreement. The pseudo-labelling methodology is open so the next group can retrain on pathologist-validated grades in 30 minutes.
 - **European-only genomic layer as a first-class confidence signal.** Rather than silently apply Abraham 2014's 228-SNP score to non-European patients, Glüten makes the demographic mismatch visible. Honest about who it works for, by design.
-- **Compute access as a finding.** The Marsh classifier originally targeted MedGemma 1.5 4B. Free Kaggle T4 hardware cannot backpropagate through MedGemma's bf16 SigLIP encoder. Pivoted to Gemma 4 E4B. Failed compute on free hardware is itself a finding about who can validate medical AI on commodity infrastructure.
+- **Compute access as a finding.** The Marsh classifier originally targeted MedGemma 1.5 4B. Free Kaggle T4 hardware cannot backpropagate through MedGemma's bf16 SigLIP encoder. So we pivoted to Gemma 4 E4B. Failed compute on free hardware is itself a finding about who can validate medical AI on commodity infrastructure.
 
 ## Stratified bias audit
 
 Run `python3 scripts/stratified_audit.py` after the v3 audit notebook produces `results/marsh_stratified_predictions.csv`. Outputs:
-- `results/marsh_stratified.csv` — per-stratum metrics table
-- `results/marsh_stratified.png` — per-class F1, per-WSI accuracy, per-quintile accuracy
-- `results/marsh_stratified_summary.md` — paragraph-form summary
+- `results/marsh_stratified.csv` (per-stratum metrics table)
+- `results/marsh_stratified.png` (per-class F1, per-WSI accuracy, per-quintile accuracy)
+- `results/marsh_stratified_summary.md` (paragraph-form summary)
 
-Per-WSI accuracy spans 0.00–1.00 (σ=0.21) across 35 slides from the same hospital, same scanner. Cross-site generalisation is the load-bearing unknown the field has no answer for, because the SOTA Cambridge benchmark has not released per-demographic metrics. Glüten surfaces that gap at inference time.
+Per-WSI accuracy spans 0.00 to 1.00 (σ=0.21) across 35 slides from the same hospital, same scanner. Cross-site generalisation is the load-bearing unknown the field has no answer for, because the SOTA Cambridge benchmark has not released per-demographic metrics. Glüten surfaces that gap at inference time.
 
 ## Disclaimer
 
@@ -156,5 +156,5 @@ See [LICENSE](LICENSE).
 
 ## Builder
 
-Faith Ogundimu — 1st-year PhD researcher, RCSI Genomic Oncology Research Group.
+Faith Ogundimu, 1st-year PhD researcher, RCSI Genomic Oncology Research Group.
 Coeliac patient. African. Living in Ireland.
