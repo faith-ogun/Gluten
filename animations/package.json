@@ -1,0 +1,30 @@
+{
+  "name": "gluten-demo-anim",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Remotion animations for the Glüten demo video.",
+  "scripts": {
+    "start": "remotion studio src/index.ts",
+    "render:one": "remotion render src/index.ts OneInOne out/one-in-one.mp4",
+    "render:bias": "remotion render src/index.ts DiagnosticBias out/diagnostic-bias.mp4",
+    "render:void": "remotion render src/index.ts ResearchVoid out/research-void.mp4",
+    "render:entry": "remotion render src/index.ts DualEntry out/dual-entry.mp4",
+    "render:layers": "remotion render src/index.ts SixLayers out/six-layers.mp4",
+    "render:confidence": "remotion render src/index.ts ConfidenceFlag out/confidence-flag.mp4",
+    "render:pivot": "remotion render src/index.ts IBDColEpiPivot out/ibdcolepi-pivot.mp4",
+    "render:hundred": "remotion render src/index.ts HundredTwins out/hundred-twins.mp4",
+    "render:final": "remotion render src/index.ts FinalCard out/final.mp4",
+    "render:all": "npm run render:one && npm run render:bias && npm run render:entry && npm run render:layers && npm run render:confidence && npm run render:pivot && npm run render:void && npm run render:hundred && npm run render:final"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.4.0"
+  }
+}

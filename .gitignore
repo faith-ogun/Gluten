@@ -1,0 +1,101 @@
+# ============================================================
+# Glüten root .gitignore
+# Aim: keep code + writeups + small assets. Exclude raw data,
+# model weights, build artefacts, secrets.
+# ============================================================
+
+# Secrets — never commit these.
+other/
+.env
+.env.*
+!.env.example
+
+# Local Firestore fallback (also gitignored from web/)
+.contributions/
+
+# Raw + processed datasets (multi-GB, reproducible from public sources)
+data/
+
+# Trained model artefacts (multi-MB each, reproducible from notebooks)
+results/*.safetensors
+results/**/*.safetensors
+results/**/*.pt
+results/**/*.bin
+results/**/checkpoint-*/
+results/__huggingface_repos__.json
+results/unsloth_compiled_cache/
+# Keep the small CSVs + the stratified audit outputs
+
+# Node modules everywhere
+node_modules/
+**/node_modules/
+
+# Next.js
+.next/
+web/.next/
+.vercel/
+
+# Animation renders (large MP4s, reproducible via npm run render:all)
+animations/out/
+animations/examples/out/
+
+# Remotion build cache
+animations/.remotion/
+animations/examples/.remotion/
+
+# TypeScript build info
+*.tsbuildinfo
+web/next-env.d.ts
+
+# Editor / OS noise
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local notes / scratch
+text edit info/
+concept htmls/
+
+# Python caches if anyone runs the scripts locally
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Kaggle local cache (if any)
+kaggle/.kaggle/
+kaggle/example\ script/.cache/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Large reference media that ship with repos but bloat history
+*.zip
+*.tar.gz
+*.tar
+# (...unless explicitly added with `git add -f`)
+
+# Trained LoRA adapter output dirs (large, downloadable from HF)
+results/gemma-marsh-lora/
+results/gemma4-marsh-lora/
+
+# Personal / strategic — kept locally, not committed
+CLAUDE.md
+HACKATHON.md
+audit/
+kaggle/
+font/
+My\ Library.csv
+
+# Concept scratch (already in .gitignore via concept htmls/ but be explicit)
+concept\ htmls/
+
+# Inspiration from a prior project (Homeward) — not Glüten's IP
+animations/examples/
+
+# Internal debugging screenshots from animation iteration
+animations/issues_screenshots/

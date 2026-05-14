@@ -1,0 +1,50 @@
+# Firebase App Hosting configuration.
+#
+# This file controls how Cloud Run runs the Glüten Next.js app once
+# `firebase init apphosting` has connected the backend to GitHub.
+#
+# Notes:
+# - The backend builds from this directory (web/), not the repo root.
+# - Public env vars go in `env`. Secret values reference Google
+#   Secret Manager entries — create them once with the firebase CLI
+#   (see comments below); they survive redeploys.
+# - Firestore writes use Application Default Credentials at runtime —
+#   no FIREBASE_SERVICE_ACCOUNT_JSON needed here. The App Hosting
+#   runtime injects a service account that has Firestore access in
+#   the same project.
+
+runConfig:
+  # 2 vCPU is enough for the LLM-proxy traffic this app does. Bump
+  # if cold starts feel slow at demo time.
+  cpu: 2
+  memoryMiB: 1024
+  # Min 0 keeps the bill at near zero when idle; first request after
+  # idle pays a 2-3 s cold start, which is fine for a demo URL.
+  minInstances: 0
+  maxInstances: 5
+  concurrency: 80
+
+env:
+  # Public — Modal Marsh sidecar URL.
+  - variable: MARSH_SIDECAR_URL
+    value: https://faith-ogun--predict.modal.run
+    availability:
+      - BUILD
+      - RUNTIME
+
+  # Public — Ollama Cloud endpoint. Both gemma4:e4b and
+  # gemma4:31b-cloud route here when the API key below is set.
+  - variable: OLLAMA_URL
+    value: https://ollama.com
+    availability:
+      - BUILD
+      - RUNTIME
+
+  # Secret — Ollama Cloud API key. Stored in Google Secret Manager.
+  # Create once with:
+  #   firebase apphosting:secrets:set OLLAMA_API_KEY
+  # (paste the same key that's in web/.env.local locally)
+  - variable: OLLAMA_API_KEY
+    secret: OLLAMA_API_KEY
+    availability:
+      - RUNTIME

@@ -1,0 +1,6 @@
+.venv/
+adapter/
+__pycache__/
+*.pyc
+.env
+.hf_token
