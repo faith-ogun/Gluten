@@ -1,13 +1,17 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Firebase App Hosting expects Next.js standalone output. Without
-  // this, Next 16 with Turbopack emits the default bundle and the
-  // /public folder is dropped from the deployed image, so every asset
-  // under /logo, /marsh-demo, etc. 404s in production while working
-  // fine in `next dev`. Standalone mode copies public/ into the
-  // bundle, which App Hosting then serves.
-  output: "standalone",
+  // Firebase App Hosting builds Next.js in standalone mode internally.
+  // Next's output-file-tracing only includes files it sees referenced
+  // by your code, so /public assets that are loaded as <img src=...>
+  // at runtime (logo, brand assets) get DROPPED from the deploy
+  // because no server-side code reads them. The marsh-demo manifest
+  // survived only because /api/medgemma/marsh does fs.readFile on it.
+  //
+  // Force-include everything under /public so static assets ship.
+  outputFileTracingIncludes: {
+    "/*": ["./public/**/*"],
+  },
 };
 
 export default nextConfig;
