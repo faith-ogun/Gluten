@@ -278,7 +278,7 @@ export function GemmaDictate<T>({
           ) : (
             <>
               <Sparkles className="h-3.5 w-3.5" />
-              Extract with Gemma 4 E4B
+              Extract with Gemma 4
             </>
           )}
         </button>
