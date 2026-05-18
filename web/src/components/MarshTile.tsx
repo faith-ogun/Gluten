@@ -77,6 +77,7 @@ export function MarshTile() {
   const [result, setResult] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handle = useCallback(async (file: File) => {
@@ -86,7 +87,11 @@ export function MarshTile() {
       setErr("Image too large (max 8 MB).");
       return;
     }
-    if (!file.type.startsWith("image/")) {
+    // Allow standard image MIME types OR explicit pathology extensions
+    // (drag-drop on macOS often reports empty MIME for .tif).
+    const isImageMime = file.type.startsWith("image/");
+    const isPathologyExt = /\.(tiff?|svs|ndpi|vsi|scn)$/i.test(file.name);
+    if (!isImageMime && !isPathologyExt) {
       setErr("File must be an image.");
       return;
     }
@@ -148,7 +153,36 @@ export function MarshTile() {
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="flex h-40 w-full items-center justify-center rounded border border-dashed border-black/20 bg-black/[0.02] text-sm text-black/60 transition hover:border-wheat-deep hover:text-wheat-deep"
+          onDragEnter={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setDragOver(true);
+          }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            // Setting dropEffect makes the cursor show the "copy" indicator
+            // and tells the browser this is a valid drop target.
+            e.dataTransfer.dropEffect = "copy";
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setDragOver(false);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setDragOver(false);
+            const f = e.dataTransfer.files?.[0];
+            if (f) void handle(f);
+          }}
+          className={
+            "flex h-40 w-full items-center justify-center rounded border border-dashed text-sm transition " +
+            (dragOver
+              ? "border-wheat-deep bg-wheat-light/60 text-wheat-deep ring-2 ring-wheat-deep/30"
+              : "border-black/20 bg-black/[0.02] text-black/60 hover:border-wheat-deep hover:text-wheat-deep")
+          }
         >
           {preview ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -161,10 +195,15 @@ export function MarshTile() {
                 .tif preview not rendered — model receives bytes
               </span>
             </span>
+          ) : dragOver ? (
+            <span className="flex flex-col items-center gap-2 font-medium">
+              <ImagePlus className="h-5 w-5" />
+              Drop patch here
+            </span>
           ) : (
             <span className="flex flex-col items-center gap-2">
               <ImagePlus className="h-5 w-5" />
-              Choose patch
+              Drag &amp; drop or click
             </span>
           )}
         </button>
