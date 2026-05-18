@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Info,
+  RotateCcw,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { cn } from "@/lib/cn";
@@ -716,13 +717,34 @@ function ScreenInput({
   const toggleFlag = (id: string) =>
     onChange({ ...state, flags: { ...state.flags, [id]: !state.flags[id] } });
 
+  // Show the clear button only when there's something to clear.
+  const hasContent =
+    state.age !== "" ||
+    state.sex !== "" ||
+    state.ethnicity !== "" ||
+    Object.values(state.flags ?? {}).some(Boolean);
+
   return (
     <div>
-      <SectionHeader
-        step="Screen · Step 00"
-        title="Enter non-specific symptoms"
-        blurb="Check every red-flag signal present. You do not need a coeliac-specific test yet — this is the pre-diagnostic entry point."
-      />
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <SectionHeader
+          step="Screen · Step 00"
+          title="Enter non-specific symptoms"
+          blurb="Check every red-flag signal present. You do not need a coeliac-specific test yet — this is the pre-diagnostic entry point."
+        />
+        {hasContent && (
+          <button
+            type="button"
+            onClick={() =>
+              onChange({ age: "", sex: "", ethnicity: "", flags: {} })
+            }
+            className="mt-1 inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-cream px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest text-warm transition hover:border-deep/40 hover:text-deep"
+          >
+            <RotateCcw className="h-3 w-3" />
+            Clear all
+          </button>
+        )}
+      </div>
 
       <ScreenPrefillBar onApply={onChange} />
 
