@@ -79,12 +79,17 @@ export function GemmaDictate<T>({
 
   const [recording, setRecording] = useState(false);
   const [micSupported, setMicSupported] = useState(false);
+  // `mounted` gates anything that depends on browser APIs so SSR and
+  // client first render produce identical HTML (avoids React #418
+  // hydration errors). Anything mic-related lives behind this flag.
+  const [mounted, setMounted] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   // Append-and-rebuild pattern: each final result chunk is appended to
   // committedRef; interim chunks are shown live but not committed yet.
   const committedRef = useRef("");
 
   useEffect(() => {
+    setMounted(true);
     setMicSupported(Boolean(getSpeechRecognition()));
   }, []);
 
@@ -232,7 +237,7 @@ export function GemmaDictate<T>({
           disabled={busy}
           className="w-full resize-none rounded-xl border border-line bg-cream p-3 pr-12 font-mono text-[12.5px] text-deep placeholder:text-warm/60 focus:border-wheat-deep focus:outline-none disabled:opacity-60"
         />
-        {micSupported && (
+        {mounted && micSupported && (
           <button
             type="button"
             onClick={recording ? stopRecording : startRecording}
@@ -278,12 +283,12 @@ export function GemmaDictate<T>({
           )}
         </button>
         <div className="flex items-center gap-3">
-          {recording && (
+          {mounted && recording && (
             <span className="font-mono text-[11px] text-rose-700">
               listening…
             </span>
           )}
-          {!micSupported && (
+          {mounted && !micSupported && (
             <span
               className="font-mono text-[10px] text-warm/70"
               title="Web Speech API not detected. Use Chrome, Edge, or Safari."

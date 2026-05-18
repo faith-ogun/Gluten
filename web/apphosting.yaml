@@ -48,3 +48,23 @@ env:
     secret: OLLAMA_API_KEY
     availability:
       - RUNTIME
+
+  # Override the default Ollama model names so they point at the
+  # Cloud-hosted variants. Local dev uses `gemma4:e4b` (pulled from
+  # ollama.com on the developer's machine). The Cloud equivalents
+  # carry the `-cloud` suffix.
+  - variable: GEMMA_E4B_MODEL
+    value: gemma4:e4b-cloud
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: GEMMA_31B_MODEL
+    value: gemma4:31b-cloud
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: TWIN_MODEL
+    value: gemma4:31b-cloud
+    availability:
+      - BUILD
+      - RUNTIME
