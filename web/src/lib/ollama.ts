@@ -61,13 +61,20 @@ export type ChatResponse = {
 };
 
 export async function chat(req: ChatRequest): Promise<ChatResponse> {
+  const headers = authHeaders();
+  const bodyStr = JSON.stringify({ ...req, stream: false });
+  // TEMP DEBUG — diagnosing 401 on twin route
+  const hasAuth = "Authorization" in headers;
+  const authLen = hasAuth ? (headers.Authorization as string).length : 0;
+  console.log(`[ollama.chat] url=${OLLAMA_URL}/api/chat model=${req.model} bodyLen=${bodyStr.length} hasAuth=${hasAuth} authLen=${authLen}`);
   const res = await fetch(`${OLLAMA_URL}/api/chat`, {
     method: "POST",
-    headers: authHeaders(),
-    body: JSON.stringify({ ...req, stream: false }),
+    headers,
+    body: bodyStr,
   });
   if (!res.ok) {
     const body = await res.text();
+    console.log(`[ollama.chat] FAIL status=${res.status} body=${body.slice(0, 200)}`);
     throw new Error(`Ollama ${res.status}: ${body}`);
   }
   return (await res.json()) as ChatResponse;
