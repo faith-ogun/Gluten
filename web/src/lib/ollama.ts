@@ -13,7 +13,10 @@
  */
 
 const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://localhost:11434";
-const OLLAMA_API_KEY = process.env.OLLAMA_API_KEY;
+// Trim because Secret Manager files often end with a trailing newline
+// — without trim, the Bearer header would be `Bearer <key>\n` and
+// Ollama Cloud rejects it as malformed with 401.
+const OLLAMA_API_KEY = process.env.OLLAMA_API_KEY?.trim();
 
 /**
  * Auth header sent to Ollama. Local Ollama ignores it (no API key
