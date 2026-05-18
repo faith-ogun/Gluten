@@ -22,13 +22,17 @@ import {
 
 // Browser Web Speech API. webkit-prefixed in Chrome/Safari, unprefixed
 // in Edge. No new deps; falls back gracefully when unsupported.
+// NOTE: `event.results` is a `SpeechRecognitionResultList`, which is
+// array-like (numeric indices + .length) but NOT a real Array. Calling
+// .filter / .map on it throws "a.filter is not a function". Always
+// iterate with a plain for-loop.
+type SpeechResult = { isFinal: boolean; 0: { transcript: string } };
+type SpeechResultList = ArrayLike<SpeechResult>;
 type SpeechRecognition = {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
-  onresult:
-    | ((e: { results: { isFinal: boolean; 0: { transcript: string } }[] }) => void)
-    | null;
+  onresult: ((e: { results: SpeechResultList }) => void) | null;
   onerror: ((e: { error: string }) => void) | null;
   onend: (() => void) | null;
   start: () => void;
@@ -90,39 +94,46 @@ export function GemmaDictate<T>({
     const recognition = new Ctor();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = navigator.language || "en-GB";
-    committedRef.current = text.length > 0 ? text + " " : "";
+    recognition.lang =
+      typeof navigator !== "undefined" && navigator.language
+        ? navigator.language
+        : "en-GB";
+
+    // Snapshot whatever's already in the textarea so we append to it
+    // rather than overwrite when the user starts a new dictation.
+    const prefix = text.trim().length > 0 ? text.trim() + " " : "";
+    committedRef.current = prefix;
 
     recognition.onresult = (event) => {
-      let interim = "";
-      // Each result entry can be final or interim.
-      // We rebuild the textarea from committed + interim each event.
-      const results = event.results as unknown as Array<{
-        isFinal: boolean;
-        0: { transcript: string };
-      }>;
-      for (let i = 0; i < results.length; i++) {
-        const r = results[i];
-        const t = r[0].transcript;
-        if (r.isFinal) {
-          // Only the latest finals haven't been committed yet — but the
-          // event always contains the full session. We rebuild fully:
-          // committed = all finals concatenated.
-          // (Safer than tracking an offset, given Chrome's quirky events.)
+      try {
+        // SpeechRecognitionResultList is array-like; iterate manually.
+        const results = event.results;
+        let finalChunks = "";
+        let interim = "";
+        for (let i = 0; i < results.length; i++) {
+          const r = results[i];
+          const t = r[0]?.transcript ?? "";
+          if (r.isFinal) {
+            finalChunks += (finalChunks ? " " : "") + t.trim();
+          } else {
+            interim += (interim ? " " : "") + t.trim();
+          }
         }
-        if (!r.isFinal) interim += t;
+        const combined = [
+          committedRef.current,
+          finalChunks,
+          interim,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .replace(/\s+/g, " ")
+          .trim();
+        setText(combined);
+      } catch (e) {
+        // Never let a recognition event strand the recording state.
+        console.warn("[dictation] onresult handler failed:", e);
+        setErr(e instanceof Error ? e.message : String(e));
       }
-      // Rebuild committed from all finals up to now
-      const allFinals = results
-        .filter((r) => r.isFinal)
-        .map((r) => r[0].transcript)
-        .join(" ");
-      const head = text && !allFinals.startsWith(text) ? text + " " : "";
-      const next = (head + allFinals + (interim ? " " + interim : "")).replace(
-        /\s+/g,
-        " ",
-      ).trimStart();
-      setText(next);
     };
 
     recognition.onerror = (e) => {
@@ -137,7 +148,13 @@ export function GemmaDictate<T>({
     recognitionRef.current = recognition;
     setErr(null);
     setRecording(true);
-    recognition.start();
+    try {
+      recognition.start();
+    } catch (e) {
+      // Some browsers throw if start() is called twice; reset state.
+      setRecording(false);
+      setErr(e instanceof Error ? e.message : String(e));
+    }
   }, [text]);
 
   const stopRecording = useCallback(() => {
@@ -245,7 +262,7 @@ export function GemmaDictate<T>({
         <button
           type="button"
           onClick={run}
-          disabled={busy || text.trim().length < 3 || recording}
+          disabled={busy || text.trim().length < 3}
           className="inline-flex items-center gap-2 rounded-xl border border-deep bg-deep px-4 py-2 text-[12.5px] font-medium text-cream transition hover:bg-deep/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy ? (
