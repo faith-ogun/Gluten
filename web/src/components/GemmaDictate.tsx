@@ -211,7 +211,7 @@ export function GemmaDictate<T>({
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-wheat-deep" />
           <div className="font-mono text-[11px] uppercase tracking-widest text-wheat-deep">
-            Dictate with Gemma 4 E4B · on-device
+            Dictate · Gemma 4 via Ollama
           </div>
         </div>
         {durationMs !== null && !busy && !err && (
@@ -223,9 +223,9 @@ export function GemmaDictate<T>({
       </div>
 
       <p className="mt-1 text-[12px] leading-relaxed text-warm">
-        Paste clinical notes or a voice transcript — Gemma 4 E4B runs locally
-        via Ollama and fills the form below. Values are enforced against the
-        FHIR-compatible schema.
+        Dictate or paste a clinical note. Your browser transcribes speech to
+        text on-device, then Gemma 4 (Ollama) structures the prose into a
+        FHIR-compatible profile and fills the form below.
       </p>
 
       <div className="relative mt-3">
