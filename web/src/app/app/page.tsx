@@ -1092,7 +1092,7 @@ function TwinInput({
       <SectionHeader
         step="Twin · Step 01"
         title="Enter what you have"
-        blurb="Partial data is fine. Only the layers you populate will activate. Voice input on-device (Gemma 4 E4B via Ollama) in the full build — this prototype uses the same structured schema."
+        blurb="Partial data is fine. Only the layers you populate will activate. Dictation transcribes on-device; Gemma 4 (Ollama) then structures the prose into FHIR JSON."
       />
 
       {fromScreen && (
@@ -1267,7 +1267,7 @@ function TwinProfile({
     resourceType: "Patient",
     meta: {
       profile: ["https://glüten.app/fhir/StructureDefinition/coeliac-profile"],
-      generatedBy: "Gemma 4 E4B (Ollama, on-device)",
+      generatedBy: "Gemma 4 via Ollama",
     },
     identifier: [{ system: "gluten.session", value: "SESSION-LOCAL-ONLY" }],
     gender: screen.sex || undefined,
@@ -1317,7 +1317,7 @@ function TwinProfile({
       <SectionHeader
         step="Twin · Step 02"
         title="FHIR-compatible profile"
-        blurb="Gemma 4 E4B structures the input into a de-identified profile card. No patient identifiers are retained — only structured clinical data."
+        blurb="Gemma 4 via Ollama structures the input into a de-identified profile card. No patient identifiers are retained — only structured clinical data."
       />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
@@ -1327,7 +1327,7 @@ function TwinProfile({
               Profile.json
             </div>
             <div className="font-mono text-[10px] text-warm/70">
-              structured by Gemma 4 E4B · on-device
+              structured by Gemma 4 · Ollama
             </div>
           </div>
           <pre className="overflow-x-auto bg-deep p-5 font-mono text-[12px] leading-relaxed text-cream/90">
