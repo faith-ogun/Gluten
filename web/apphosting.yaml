@@ -49,12 +49,15 @@ env:
     availability:
       - RUNTIME
 
-  # Override the default Ollama model names so they point at the
-  # Cloud-hosted variants. Local dev uses `gemma4:e4b` (pulled from
-  # ollama.com on the developer's machine). The Cloud equivalents
-  # carry the `-cloud` suffix.
+  # Override Ollama model names for the production deploy.
+  # Per ollama.com/library/gemma4/tags, the ONLY Gemma 4 variant
+  # available on Ollama Cloud's hosted inference is `gemma4:31b-cloud`.
+  # E4B is designed for on-device use and has no cloud-hosted twin.
+  # So in production both the extraction and the twin engine route to
+  # 31b-cloud. Local dev (.env.local) leaves these unset and runs
+  # gemma4:e4b locally for true on-device extraction.
   - variable: GEMMA_E4B_MODEL
-    value: gemma4:e4b-cloud
+    value: gemma4:31b-cloud
     availability:
       - BUILD
       - RUNTIME
