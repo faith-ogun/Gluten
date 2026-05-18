@@ -159,11 +159,11 @@ export const FinalCard: React.FC = () => {
           color: theme.accentBright,
           borderRadius: 999,
           fontFamily: theme.mono,
-          fontSize: 24,
+          fontSize: 20,
           opacity: urlOp,
         }}
       >
-        gluten.app
+        gluten--gluten-gemma4.europe-west4.hosted.app
       </div>
     </AbsoluteFill>
   );

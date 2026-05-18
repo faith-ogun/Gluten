@@ -6,6 +6,10 @@
   "scripts": {
     "start": "remotion studio src/index.ts",
     "render:one": "remotion render src/index.ts OneInOne out/one-in-one.mp4",
+    "render:delay": "remotion render src/index.ts DiagnosticDelay out/diagnostic-delay.mp4",
+    "render:journey": "remotion render src/index.ts Journey out/journey.mp4",
+    "render:flywheel": "remotion render src/index.ts Flywheel out/flywheel.mp4",
+    "render:consequences": "remotion render src/index.ts Consequences out/consequences.mp4",
     "render:bias": "remotion render src/index.ts DiagnosticBias out/diagnostic-bias.mp4",
     "render:void": "remotion render src/index.ts ResearchVoid out/research-void.mp4",
     "render:entry": "remotion render src/index.ts DualEntry out/dual-entry.mp4",

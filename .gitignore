@@ -100,3 +100,11 @@ animations/examples/
 # Internal debugging screenshots from animation iteration
 animations/issues_screenshots/
 .claude/
+
+# Video editing artefacts (multi-GB iMovie library + raw clips)
+demo/
+
+# Personal medical photos used in the Journey animation. Already
+# baked into the rendered out/journey.mp4; sources stay local.
+animations/images/
+animations/public/journey-*.jpeg

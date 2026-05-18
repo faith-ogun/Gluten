@@ -1,6 +1,10 @@
 import React from "react";
 import { Composition } from "remotion";
 import { OneInOne } from "./OneInOne";
+import { DiagnosticDelay } from "./DiagnosticDelay";
+import { Journey } from "./Journey";
+import { Consequences } from "./Consequences";
+import { Flywheel } from "./Flywheel";
 import { DiagnosticBias } from "./DiagnosticBias";
 import { ResearchVoid } from "./ResearchVoid";
 import { DualEntry } from "./DualEntry";
@@ -20,6 +24,38 @@ export const RemotionRoot: React.FC = () => {
       <Composition
         id="OneInOne"
         component={OneInOne}
+        durationInFrames={180}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+      />
+      <Composition
+        id="DiagnosticDelay"
+        component={DiagnosticDelay}
+        durationInFrames={150}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+      />
+      <Composition
+        id="Journey"
+        component={Journey}
+        durationInFrames={165}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+      />
+      <Composition
+        id="Consequences"
+        component={Consequences}
+        durationInFrames={210}
+        fps={FPS}
+        width={WIDTH}
+        height={HEIGHT}
+      />
+      <Composition
+        id="Flywheel"
+        component={Flywheel}
         durationInFrames={180}
         fps={FPS}
         width={WIDTH}
