@@ -10,8 +10,40 @@
  * surface of Glüten. Model + extractor live at /api/gemma/extract.
  */
 
-import { useState } from "react";
-import { Sparkles, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Sparkles,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  Mic,
+  MicOff,
+} from "lucide-react";
+
+// Browser Web Speech API. webkit-prefixed in Chrome/Safari, unprefixed
+// in Edge. No new deps; falls back gracefully when unsupported.
+type SpeechRecognition = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult:
+    | ((e: { results: { isFinal: boolean; 0: { transcript: string } }[] }) => void)
+    | null;
+  onerror: ((e: { error: string }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+type SRConstructor = new () => SpeechRecognition;
+
+function getSpeechRecognition(): SRConstructor | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as {
+    SpeechRecognition?: SRConstructor;
+    webkitSpeechRecognition?: SRConstructor;
+  };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+}
 
 type Mode = "screen" | "twin";
 
@@ -40,6 +72,89 @@ export function GemmaDictate<T>({
   const [reasoning, setReasoning] = useState<string | null>(null);
   const [durationMs, setDurationMs] = useState<number | null>(null);
   const [err, setErr] = useState<string | null>(null);
+
+  const [recording, setRecording] = useState(false);
+  const [micSupported, setMicSupported] = useState(false);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  // Append-and-rebuild pattern: each final result chunk is appended to
+  // committedRef; interim chunks are shown live but not committed yet.
+  const committedRef = useRef("");
+
+  useEffect(() => {
+    setMicSupported(Boolean(getSpeechRecognition()));
+  }, []);
+
+  const startRecording = useCallback(() => {
+    const Ctor = getSpeechRecognition();
+    if (!Ctor) return;
+    const recognition = new Ctor();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = navigator.language || "en-GB";
+    committedRef.current = text.length > 0 ? text + " " : "";
+
+    recognition.onresult = (event) => {
+      let interim = "";
+      // Each result entry can be final or interim.
+      // We rebuild the textarea from committed + interim each event.
+      const results = event.results as unknown as Array<{
+        isFinal: boolean;
+        0: { transcript: string };
+      }>;
+      for (let i = 0; i < results.length; i++) {
+        const r = results[i];
+        const t = r[0].transcript;
+        if (r.isFinal) {
+          // Only the latest finals haven't been committed yet — but the
+          // event always contains the full session. We rebuild fully:
+          // committed = all finals concatenated.
+          // (Safer than tracking an offset, given Chrome's quirky events.)
+        }
+        if (!r.isFinal) interim += t;
+      }
+      // Rebuild committed from all finals up to now
+      const allFinals = results
+        .filter((r) => r.isFinal)
+        .map((r) => r[0].transcript)
+        .join(" ");
+      const head = text && !allFinals.startsWith(text) ? text + " " : "";
+      const next = (head + allFinals + (interim ? " " + interim : "")).replace(
+        /\s+/g,
+        " ",
+      ).trimStart();
+      setText(next);
+    };
+
+    recognition.onerror = (e) => {
+      setErr(`microphone: ${e.error}`);
+      setRecording(false);
+    };
+    recognition.onend = () => {
+      setRecording(false);
+      recognitionRef.current = null;
+    };
+
+    recognitionRef.current = recognition;
+    setErr(null);
+    setRecording(true);
+    recognition.start();
+  }, [text]);
+
+  const stopRecording = useCallback(() => {
+    recognitionRef.current?.stop();
+    setRecording(false);
+  }, []);
+
+  // Stop recording if component unmounts mid-recording
+  useEffect(() => {
+    return () => {
+      try {
+        recognitionRef.current?.stop();
+      } catch {
+        // ignore
+      }
+    };
+  }, []);
 
   const run = async () => {
     const trimmed = text.trim();
@@ -91,20 +206,46 @@ export function GemmaDictate<T>({
         FHIR-compatible schema.
       </p>
 
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder={placeholder}
-        rows={4}
-        disabled={busy}
-        className="mt-3 w-full resize-none rounded-xl border border-line bg-cream p-3 font-mono text-[12.5px] text-deep placeholder:text-warm/60 focus:border-wheat-deep focus:outline-none disabled:opacity-60"
-      />
+      <div className="relative mt-3">
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={placeholder}
+          rows={4}
+          disabled={busy}
+          className="w-full resize-none rounded-xl border border-line bg-cream p-3 pr-12 font-mono text-[12.5px] text-deep placeholder:text-warm/60 focus:border-wheat-deep focus:outline-none disabled:opacity-60"
+        />
+        {micSupported && (
+          <button
+            type="button"
+            onClick={recording ? stopRecording : startRecording}
+            disabled={busy}
+            aria-label={recording ? "Stop dictation" : "Start dictation"}
+            title={recording ? "Stop dictation" : "Dictate"}
+            className={
+              "absolute right-2 top-2 inline-flex h-9 w-9 items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-50 " +
+              (recording
+                ? "border-rose-400 bg-rose-100 text-rose-700 shadow-sm"
+                : "border-line bg-cream text-warm hover:border-wheat-deep hover:text-wheat-deep")
+            }
+          >
+            {recording ? (
+              <>
+                <span className="absolute -right-0.5 -top-0.5 inline-flex h-2.5 w-2.5 animate-ping rounded-full bg-rose-500/80" />
+                <MicOff className="h-4 w-4" />
+              </>
+            ) : (
+              <Mic className="h-4 w-4" />
+            )}
+          </button>
+        )}
+      </div>
 
       <div className="mt-3 flex items-center justify-between gap-3">
         <button
           type="button"
           onClick={run}
-          disabled={busy || text.trim().length < 3}
+          disabled={busy || text.trim().length < 3 || recording}
           className="inline-flex items-center gap-2 rounded-xl border border-deep bg-deep px-4 py-2 text-[12.5px] font-medium text-cream transition hover:bg-deep/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy ? (
@@ -119,20 +260,35 @@ export function GemmaDictate<T>({
             </>
           )}
         </button>
-        {text.length > 0 && !busy && (
-          <button
-            type="button"
-            onClick={() => {
-              setText("");
-              setReasoning(null);
-              setErr(null);
-              setDurationMs(null);
-            }}
-            className="font-mono text-[11px] text-warm hover:text-deep"
-          >
-            clear
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {recording && (
+            <span className="font-mono text-[11px] text-rose-700">
+              listening…
+            </span>
+          )}
+          {!micSupported && (
+            <span
+              className="font-mono text-[10px] text-warm/70"
+              title="Web Speech API not detected. Use Chrome, Edge, or Safari."
+            >
+              dictation unsupported in this browser
+            </span>
+          )}
+          {text.length > 0 && !busy && !recording && (
+            <button
+              type="button"
+              onClick={() => {
+                setText("");
+                setReasoning(null);
+                setErr(null);
+                setDurationMs(null);
+              }}
+              className="font-mono text-[11px] text-warm hover:text-deep"
+            >
+              clear
+            </button>
+          )}
+        </div>
       </div>
 
       {err && (
