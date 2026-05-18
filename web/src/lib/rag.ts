@@ -108,6 +108,42 @@ export type RagSearchOptions = {
  * query side (corpus used `search_document:`). The prefix pair materially
  * improves retrieval quality over plain text on both sides.
  */
+/**
+ * Retrieve top-k abstracts for a natural-language query.
+ *
+ * Uses pre-computed query embeddings from `web/public/pubmed/query-cache.json`.
+ * Queries are deterministic per layer (built from `formatLayerQuery` in
+ * `twin.ts`), so we hash the exact query string and look it up. The cache
+ * was generated locally against nomic-embed-text and shipped with the
+ * deployed bundle. Ollama Cloud doesn't host nomic-embed-text, so this
+ * avoids a runtime embedding call entirely.
+ */
+type QueryCache = Record<string, number[]>;
+let _qcache: QueryCache | null = null;
+
+function queryCachePath(): string {
+  const candidates = [
+    resolve(process.cwd(), "public", "pubmed", "query-cache.json"),
+    resolve(process.cwd(), ".next", "standalone", "public", "pubmed", "query-cache.json"),
+    resolve(process.cwd(), "..", "data", "pubmed", "query-cache.json"),
+  ];
+  for (const p of candidates) {
+    if (existsSync(p)) return p;
+  }
+  return candidates[0];
+}
+
+function loadQueryCache(): QueryCache {
+  if (_qcache) return _qcache;
+  const p = queryCachePath();
+  if (!existsSync(p)) {
+    _qcache = {};
+    return _qcache;
+  }
+  _qcache = JSON.parse(readFileSync(p, "utf8")) as QueryCache;
+  return _qcache;
+}
+
 export async function ragSearch(
   query: string,
   opts: RagSearchOptions = {},
@@ -117,15 +153,28 @@ export async function ragSearch(
     ? (Array.isArray(opts.slice) ? opts.slice : [opts.slice])
     : null;
   const idx = loadIndex();
-  const { embeddings } = await embed({
-    model: EMBED_MODEL,
-    input: `search_query: ${query}`,
-  });
-  const qv = embeddings[0];
   const pool = slices ? idx.rows.filter((r) => slices.includes(r.slice)) : idx.rows;
+
+  // Try the cache first.
+  const cache = loadQueryCache();
+  const cached = cache[query];
+  let qv: number[] | null = cached ?? null;
+
+  if (!qv) {
+    // Cache miss — fall back to live embedding via Ollama. Works locally
+    // (nomic-embed-text pulled), throws on Ollama Cloud (model not hosted),
+    // in which case the caller sees a 401 — easy signal that the cache
+    // needs to be regenerated for that query.
+    const { embeddings } = await embed({
+      model: EMBED_MODEL,
+      input: `search_query: ${query}`,
+    });
+    qv = embeddings[0];
+  }
+
   const scored: RagHit[] = pool.map((r) => {
     const { vec, ...rest } = r;
-    return { ...rest, score: cosine(qv, vec) };
+    return { ...rest, score: cosine(qv as number[], vec) };
   });
   scored.sort((a, b) => b.score - a.score);
   return scored.slice(0, k);
