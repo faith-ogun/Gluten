@@ -47,10 +47,30 @@ export type RagHit = Omit<RagRow, "vec"> & { score: number };
 
 let _index: RagIndex | null = null;
 
-/** Absolute path to the built index. Looks in repo-root/data/pubmed. */
+/**
+ * Resolve the on-disk path to the built PubMed RAG index.
+ *
+ * Production (Firebase App Hosting): the index ships inside the deployed
+ * bundle at `web/public/pubmed/index.json`. process.cwd() inside the
+ * Cloud Run container is the standalone server root (sibling to `public/`),
+ * so we read it at `./public/pubmed/index.json`.
+ *
+ * Local dev: same path works because `next dev` runs from `web/`.
+ *
+ * Fallback: the legacy repo-root location `../data/pubmed/index.json`
+ * still works if someone runs from a checkout that has the data tree
+ * but hasn't copied the index into public/.
+ */
 function indexPath(): string {
-  // Next.js runs with cwd = web/, so hop up one level.
-  return resolve(process.cwd(), "..", "data", "pubmed", "index.json");
+  const candidates = [
+    resolve(process.cwd(), "public", "pubmed", "index.json"),
+    resolve(process.cwd(), ".next", "standalone", "public", "pubmed", "index.json"),
+    resolve(process.cwd(), "..", "data", "pubmed", "index.json"),
+  ];
+  for (const p of candidates) {
+    if (existsSync(p)) return p;
+  }
+  return candidates[0];
 }
 
 export function loadIndex(): RagIndex {
