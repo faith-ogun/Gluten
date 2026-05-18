@@ -99,3 +99,4 @@ animations/examples/
 
 # Internal debugging screenshots from animation iteration
 animations/issues_screenshots/
+.claude/
