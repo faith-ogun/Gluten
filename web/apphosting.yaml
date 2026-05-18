@@ -41,11 +41,14 @@ env:
       - RUNTIME
 
   # Secret — Ollama Cloud API key. Stored in Google Secret Manager.
-  # Create once with:
+  # Pinned to a specific version (`@2`) to work around the known
+  # Firebase App Hosting bug where the rollout creates a secret alias
+  # whose version pointer points at a non-existent alias name instead
+  # of the real secret, causing a 401 at runtime even though the env
+  # var is bound. Bump this number after every
   #   firebase apphosting:secrets:set OLLAMA_API_KEY
-  # (paste the same key that's in web/.env.local locally)
   - variable: OLLAMA_API_KEY
-    secret: OLLAMA_API_KEY
+    secret: OLLAMA_API_KEY@2
     availability:
       - RUNTIME
 
